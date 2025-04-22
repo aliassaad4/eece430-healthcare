@@ -1,0 +1,76 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  EMERGENCY
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  password          String
+  firstName         String
+  lastName          String
+  role              UserRole
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  // Relations
+  patientAppointments Appointment[] @relation("PatientAppointments")
+  doctorAppointments  Appointment[] @relation("DoctorAppointments")
+  patientNotes        MedicalNote[] @relation("PatientNotes")
+  doctorNotes         MedicalNote[] @relation("DoctorNotes")
+}
+
+model Appointment {
+  id          String           @id @default(uuid())
+  patientId   String
+  doctorId    String
+  dateTime    DateTime
+  status      AppointmentStatus
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  // Relations
+  patient     User             @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor      User             @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  medicalNote MedicalNote?
+
+  @@index([patientId])
+  @@index([doctorId])
+}
+
+model MedicalNote {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  patientId     String
+  doctorId      String
+  content       String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  patient       User        @relation("PatientNotes", fields: [patientId], references: [id])
+  doctor        User        @relation("DoctorNotes", fields: [doctorId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId])
+} 
